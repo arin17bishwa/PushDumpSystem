@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Push Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            position: relative;
+        }
+
+        .json-sections {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .json-section {
+            flex-grow: 1;
+        }
+
+        .content-section {
+            flex-basis: 50%;
+        }
+
+        .header-section, .param-section {
+            flex-basis: 25%;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            color: #007bff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .nested {
+            display: none;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .created-at {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.6em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<h1>Push Viewer</h1>
+
+<div class="controls">
+    <input type="text" id="searchInput" placeholder="Search in content..." onkeyup="filterCards()"/>
+    <select id="statusFilter" onchange="filterCards()">
+        <option value="">All Status Codes</option>
+        {% for code in status_codes %}
+            <option value="{{ code }}">{{ code }}</option>
+        {% endfor %}
+    </select>
+    <button onclick="toggleSort()">Sort: <span id="sortOrder">Newest</span></button>
+</div>
+
+<div id="cardContainer">
+    {% for obj in objects %}
+        <div class="card"
+             data-content="{{ obj.content_json|escapejs }}"
+             data-created="{{ obj.created_at|date:'c' }}"
+             data-status="{{ obj.response_status_code }}">
+            <div>
+                <strong>ID:</strong> {{ obj.id }} &nbsp; | &nbsp;
+                <strong>Status Code:</strong> {{ obj.response_status_code }}
+            </div>
+
+            <div class="json-sections">
+                <div class="json-section content-section">
+                    <div class="collapsible" onclick="toggleJSON(this)">▶ Content</div>
+                    <div class="nested">{{ obj.content_json }}</div>
+                </div>
+                <div class="json-section header-section">
+                    <div class="collapsible" onclick="toggleJSON(this)">▶ Headers</div>
+                    <div class="nested">{{ obj.headers_json }}</div>
+                </div>
+                <div class="json-section param-section">
+                    <div class="collapsible" onclick="toggleJSON(this)">▶ Query Params</div>
+                    <div class="nested">{{ obj.query_json }}</div>
+                </div>
+            </div>
+
+            <div class="created-at">{{ obj.created_at }}</div>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+    function toggleJSON(el) {
+        const content = el.nextElementSibling;
+        const arrow = el.innerText[0];
+        el.innerText = (arrow === '▶' ? '▼' : '▶') + el.innerText.slice(1);
+        content.style.display = content.style.display === "block" ? "none" : "block";
+    }
+
+    function filterCards() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const selectedStatus = document.getElementById('statusFilter').value;
+        const cards = document.querySelectorAll('.card');
+
+        cards.forEach(card => {
+            const content = card.dataset.content.toLowerCase();
+            const status = card.dataset.status;
+
+            const matchSearch = content.includes(searchText);
+            const matchStatus = selectedStatus === "" || status === selectedStatus;
+
+            card.style.display = matchSearch && matchStatus ? "block" : "none";
+        });
+    }
+
+    let ascending = false;
+
+    function toggleSort() {
+        ascending = !ascending;
+        const container = document.getElementById('cardContainer');
+        const cards = Array.from(container.children);
+
+        cards.sort((a, b) => {
+            const dateA = new Date(a.dataset.created);
+            const dateB = new Date(b.dataset.created);
+            return ascending ? dateA - dateB : dateB - dateA;
+        });
+
+        container.innerHTML = '';
+        cards.forEach(card => container.appendChild(card));
+        document.getElementById('sortOrder').innerText = ascending ? 'Oldest' : 'Newest';
+    }
+</script>
+</body>
+</html>
