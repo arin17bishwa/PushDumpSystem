@@ -1,4 +1,6 @@
 import json
+import random
+import time
 
 from django.shortcuts import render
 from rest_framework import status
@@ -24,8 +26,11 @@ def store_push(request):
             response_status_code=response_status_code,
         )
 
+        sleep_time:int=random.randint(5,15)
+        time.sleep(sleep_time)
+
         return Response(
-            {"message": "Saved successfully", "id": obj.id, "uuid": obj.uuid_key},
+            {"message": "Saved successfully", "id": obj.id, "uuid": obj.uuid_key, "sleep_time": sleep_time},
             status=response_status_code,
         )
 
